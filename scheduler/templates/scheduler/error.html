@@ -1,0 +1,38 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}{{ title }} - Course Scheduler{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-danger text-white">
+                <h2 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>{{ title }}</h2>
+            </div>
+            <div class="card-body text-center p-5">
+                <h1 class="display-1 text-danger mb-4">{{ error_code|default:"Error" }}</h1>
+                <p class="lead mb-4">{{ message }}</p>
+                <div class="mt-5">
+                    <a href="{% url 'index' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-home me-2"></i>Return to Dashboard
+                    </a>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'logout' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-light text-center">
+                <p class="text-muted mb-0">
+                    If this problem persists, please contact the system administrator.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

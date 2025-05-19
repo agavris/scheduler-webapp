@@ -1,0 +1,139 @@
+/* Main Styles for the Course Scheduler App */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* Card styling */
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+/* Table styling */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+/* Form styling */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+/* Custom button styling */
+.btn-action {
+    margin-right: 5px;
+}
+
+/* Status indicators */
+.badge {
+    font-size: 0.85em;
+}
+
+/* Dashboard panels */
+.stats-card {
+    border-left: 4px solid;
+    transition: all 0.3s;
+}
+
+.stats-card.primary {
+    border-left-color: #0d6efd;
+}
+
+.stats-card.success {
+    border-left-color: #198754;
+}
+
+.stats-card.info {
+    border-left-color: #0dcaf0;
+}
+
+.stats-card.warning {
+    border-left-color: #ffc107;
+}
+
+/* Icons in cards */
+.card-icon {
+    font-size: 2rem;
+    opacity: 0.7;
+}
+
+/* Import/Export area */
+.dropzone {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 50px 20px;
+    text-align: center;
+    transition: all 0.3s;
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.dropzone:hover {
+    border-color: #0d6efd;
+    background-color: #f1f8ff;
+}
+
+/* Schedule details view */
+.satisfaction-good {
+    color: #198754;
+}
+
+.satisfaction-medium {
+    color: #ffc107;
+}
+
+.satisfaction-poor {
+    color: #dc3545;
+}
+
+/* Progress indicator */
+.progress-thin {
+    height: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-deck {
+        display: block;
+    }
+    
+    .card-deck .card {
+        margin-bottom: 15px;
+    }
+}
+
+/* Print styles for exporting */
+@media print {
+    .no-print {
+        display: none;
+    }
+    
+    .table th, .table td {
+        padding: 0.25rem 0.5rem;
+    }
+}

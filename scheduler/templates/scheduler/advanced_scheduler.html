@@ -1,0 +1,318 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Advanced Scheduler Configuration - Course Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h2 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Advanced Scheduler Configuration</h2>
+                <a href="{% url 'run_scheduler_ui' %}" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Standard Config
+                </a>
+            </div>
+            <div class="card-body">
+                <form id="advancedSchedulerForm" method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h4 class="mb-0">Core Parameters</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="iterations" class="form-label">Number of Iterations</label>
+                                        <input type="number" class="form-control" id="iterations" name="iterations" 
+                                               min="100" max="100000" value="{{ preferences.default_iterations|default:1000 }}" required>
+                                        <div class="form-text">Higher values may produce better results but take longer to run.</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="minCourseFill" class="form-label">Minimum Course Fill Rate</label>
+                                        <input type="number" class="form-control" id="minCourseFill" name="min_course_fill" 
+                                               min="0" max="1" step="0.05" value="{{ preferences.default_min_course_fill|default:0.75 }}" required>
+                                        <div class="form-text">Target fill rate for courses (0.75 = 75%).</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="earlyStopScore" class="form-label">Early Stop Score</label>
+                                        <input type="number" class="form-control" id="earlyStopScore" name="early_stop_score" 
+                                               min="0" value="0" step="0.1">
+                                        <div class="form-text">Stop early if score reaches this value (0 = run all iterations).</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="timeLimit" class="form-label">Time Limit (seconds)</label>
+                                        <input type="number" class="form-control" id="timeLimit" name="time_limit_seconds" 
+                                               min="5" max="300" value="30">
+                                        <div class="form-text">Maximum time allowed for each optimization run.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h4 class="mb-0">Multi-Run Configuration</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="multipleRuns" name="multiple_runs">
+                                        <label class="form-check-label" for="multipleRuns">Run Multiple Times</label>
+                                        <div class="form-text">Try multiple scheduling runs and select the best result.</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="runCount" class="form-label">Number of Runs</label>
+                                        <input type="number" class="form-control" id="runCount" name="run_count" 
+                                               min="2" max="10" value="3" disabled>
+                                        <div class="form-text">How many different scheduling attempts to try.</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="retainAll" class="form-label">Retain Results</label>
+                                        <select class="form-select" id="retainAll" name="retain_all_runs" disabled>
+                                            <option value="best_only">Best Result Only</option>
+                                            <option value="all_runs">All Runs</option>
+                                            <option value="top_three">Top 3 Results</option>
+                                        </select>
+                                        <div class="form-text">Which scheduling results to keep in the database.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h4 class="mb-0">Priority Weight Configuration</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="priorityWeight" class="form-label">Priority Weighting</label>
+                                                <select class="form-select" id="priorityWeight" name="priority_weight">
+                                                    <option value="standard" selected>Standard (Default)</option>
+                                                    <option value="strong">Strong (Higher Grades First)</option>
+                                                    <option value="balanced">Balanced (Equal Chances)</option>
+                                                    <option value="custom">Custom Weights</option>
+                                                </select>
+                                                <div class="form-text">How to weight student priority in scheduling.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="customWeightsContainer" class="row mt-3" style="display: none;">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="priority1Weight" class="form-label">Priority 1 Weight</label>
+                                                <input type="number" class="form-control" id="priority1Weight" name="priority1_weight" 
+                                                       min="0" max="10" step="0.1" value="3.0">
+                                                <div class="form-text">Higher values give more preference to priority 1 students.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="priority2Weight" class="form-label">Priority 2 Weight</label>
+                                                <input type="number" class="form-control" id="priority2Weight" name="priority2_weight" 
+                                                       min="0" max="10" step="0.1" value="2.0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="priority3Weight" class="form-label">Priority 3 Weight</label>
+                                                <input type="number" class="form-control" id="priority3Weight" name="priority3_weight" 
+                                                       min="0" max="10" step="0.1" value="1.0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-warning text-dark">
+                                    <h4 class="mb-0">Satisfaction Threshold Configuration</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="customThresholds" name="custom_thresholds_enabled">
+                                                <label class="form-check-label" for="customThresholds">Custom Satisfaction Thresholds</label>
+                                                <div class="form-text">Define your own thresholds for perfect/partial/unsatisfied ratings.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="thresholdsContainer" class="row mt-3" style="display: none;">
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label for="perfectThreshold" class="form-label">Perfect Threshold</label>
+                                                <input type="number" class="form-control" id="perfectThreshold" name="perfect_threshold" 
+                                                       min="0" max="1" step="0.05" value="0.2">
+                                                <div class="form-text">Scores below this are considered "perfect".</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label for="goodThreshold" class="form-label">Good Threshold</label>
+                                                <input type="number" class="form-control" id="goodThreshold" name="good_threshold" 
+                                                       min="0" max="1" step="0.05" value="0.4">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label for="partialThreshold" class="form-label">Partial Threshold</label>
+                                                <input type="number" class="form-control" id="partialThreshold" name="partial_threshold" 
+                                                       min="0" max="1" step="0.05" value="0.6">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label for="poorThreshold" class="form-label">Poor Threshold</label>
+                                                <input type="number" class="form-control" id="poorThreshold" name="poor_threshold" 
+                                                       min="0" max="1" step="0.05" value="0.8">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="reset" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-undo me-1"></i> Reset
+                        </button>
+                        <button type="button" class="btn btn-primary me-md-2" id="save-defaults-btn">
+                            <i class="fas fa-save me-1"></i> Save as Defaults
+                        </button>
+                        <button type="submit" class="btn btn-success" id="run-scheduler-btn">
+                            <i class="fas fa-play me-1"></i> Run Scheduler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Handle Multiple Runs toggle
+        $('#multipleRuns').change(function() {
+            if($(this).is(':checked')) {
+                $('#runCount').prop('disabled', false);
+                $('#retainAll').prop('disabled', false);
+            } else {
+                $('#runCount').prop('disabled', true);
+                $('#retainAll').prop('disabled', true);
+            }
+        });
+        
+        // Handle Custom Priority Weights
+        $('#priorityWeight').change(function() {
+            if($(this).val() === 'custom') {
+                $('#customWeightsContainer').show();
+            } else {
+                $('#customWeightsContainer').hide();
+            }
+        });
+        
+        // Handle Custom Satisfaction Thresholds
+        $('#customThresholds').change(function() {
+            if($(this).is(':checked')) {
+                $('#thresholdsContainer').show();
+            } else {
+                $('#thresholdsContainer').hide();
+            }
+        });
+        
+        // Handle Save as Defaults button
+        $('#save-defaults-btn').click(function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData($('#advancedSchedulerForm')[0]);
+            
+            // Add flag indicating this is saving defaults
+            formData.append('save_as_defaults', 'true');
+            
+            // Prepare custom thresholds if enabled
+            if($('#customThresholds').is(':checked')) {
+                const thresholds = {
+                    'perfect': parseFloat($('#perfectThreshold').val()),
+                    'good': parseFloat($('#goodThreshold').val()),
+                    'partial': parseFloat($('#partialThreshold').val()),
+                    'poor': parseFloat($('#poorThreshold').val())
+                };
+                formData.append('custom_thresholds', JSON.stringify(thresholds));
+            }
+            
+            // Prepare custom weights if enabled
+            if($('#priorityWeight').val() === 'custom') {
+                const weights = {
+                    '1': parseFloat($('#priority1Weight').val()),
+                    '2': parseFloat($('#priority2Weight').val()),
+                    '3': parseFloat($('#priority3Weight').val())
+                };
+                formData.append('custom_weights', JSON.stringify(weights));
+            }
+            
+            // Send AJAX request to save preferences
+            $.ajax({
+                url: '{% url "save_preferences" %}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    // Show success message
+                    const toast = $('<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5000">' +
+                        '<div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">' +
+                        '<div class="toast-header bg-success text-white">' +
+                        '<i class="fas fa-check-circle me-2"></i>' +
+                        '<strong class="me-auto">Success</strong>' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                        '</div>' +
+                        '<div class="toast-body">' +
+                        'Your scheduler preferences have been saved successfully.' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>');
+                    
+                    $('body').append(toast);
+                    setTimeout(function() {
+                        toast.remove();
+                    }, 3000);
+                },
+                error: function() {
+                    alert('Error saving preferences. Please try again.');
+                }
+            });
+        });
+        
+        // Handle form submission
+        $('#advancedSchedulerForm').submit(function(e) {
+            // Block resubmission
+            $('#run-scheduler-btn').prop('disabled', true);
+            $('#run-scheduler-btn').html('<i class="fas fa-spinner fa-spin me-1"></i> Running...');
+            
+            // No additional handling needed as the form will POST directly
+        });
+    });
+</script>
+{% endblock %}

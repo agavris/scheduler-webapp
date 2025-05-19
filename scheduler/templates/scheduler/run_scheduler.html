@@ -1,0 +1,194 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Run Scheduler - Course Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h2 class="mb-0"><i class="fas fa-cogs me-2"></i>Run Scheduler</h2>
+                <a href="{% url 'advanced_scheduler' %}" class="btn btn-dark">
+                    <i class="fas fa-sliders-h me-1"></i> Advanced Configuration
+                </a>
+            </div>
+            <div class="card-body">
+                <p class="lead">Configure and run the course scheduling algorithm with Rust acceleration.</p>
+                
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+                
+                <form id="schedulerForm" method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="iterations" class="form-label">Number of Iterations</label>
+                            <input type="number" class="form-control" id="iterations" name="iterations" 
+                                   min="100" max="100000" value="1000" required>
+                            <div class="form-text">Higher values may produce better results but take longer to run.</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="minCourseFill" class="form-label">Minimum Course Fill Rate</label>
+                            <input type="number" class="form-control" id="minCourseFill" name="min_course_fill" 
+                                   min="0" max="1" step="0.05" value="0.75" required>
+                            <div class="form-text">Target fill rate for courses (0.75 = 75%).</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="earlyStopScore" class="form-label">Early Stop Score</label>
+                            <input type="number" class="form-control" id="earlyStopScore" name="early_stop_score" 
+                                   min="0" value="0" step="0.1">
+                            <div class="form-text">Stop early if score reaches this value (0 = run all iterations).</div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="mt-4 mb-3">Advanced Optimization Options</h4>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="multipleRuns" name="multiple_runs">
+                                <label class="form-check-label" for="multipleRuns">Run Multiple Times</label>
+                            </div>
+                            <div class="form-text">Try multiple scheduling runs and select the best result.</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="runCount" class="form-label">Number of Runs</label>
+                            <input type="number" class="form-control" id="runCount" name="run_count" 
+                                   min="2" max="10" value="3" disabled>
+                            <div class="form-text">How many different scheduling attempts to try.</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="priorityWeight" class="form-label">Priority Weighting</label>
+                            <select class="form-select" id="priorityWeight" name="priority_weight">
+                                <option value="standard" selected>Standard (Default)</option>
+                                <option value="strong">Strong (Higher Grades First)</option>
+                                <option value="balanced">Balanced (Equal Chances)</option>
+                            </select>
+                            <div class="form-text">How to weight student priority in scheduling.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>How the Scheduler Works</h5>
+                        <p>The scheduler uses a sophisticated algorithm with Rust bindings for high performance to assign students to courses based on their preferences.</p>
+                        <ul>
+                            <li><strong>Students</strong> are sorted by priority (e.g., juniors before sophomores before freshmen)</li>
+                            <li><strong>Courses</strong> have maximum capacities that cannot be exceeded</li>
+                            <li><strong>Satisfaction Score</strong> is lower (better) when students get courses they requested</li>
+                            <li>The algorithm runs multiple iterations to find the optimal solution, shuffling students each time</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="scheduler-status"></div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                        <button type="button" id="run-scheduler-btn" class="btn btn-warning btn-lg">
+                            <i class="fas fa-play me-2"></i>
+                            <span id="scheduler-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            Run Scheduler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if configs %}
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0"><i class="fas fa-history me-2"></i>Recent Configurations</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Iterations</th>
+                                <th>Min Fill Rate</th>
+                                <th>Early Stop</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for config in configs %}
+                            <tr>
+                                <td>{{ config.name }}</td>
+                                <td>{{ config.iterations }}</td>
+                                <td>{{ config.min_course_fill }}</td>
+                                <td>{{ config.early_stop_score }}</td>
+                                <td>{{ config.created_at|date:"M d, Y H:i" }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning load-config-btn" 
+                                            data-iterations="{{ config.iterations }}"
+                                            data-min-fill="{{ config.min_course_fill }}"
+                                            data-early-stop="{{ config.early_stop_score }}">
+                                        <i class="fas fa-sync-alt"></i> Use
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle the Multiple Runs checkbox to enable/disable Run Count
+    $(document).ready(function() {
+        $('#multipleRuns').change(function() {
+            if($(this).is(':checked')) {
+                $('#runCount').prop('disabled', false);
+            } else {
+                $('#runCount').prop('disabled', true);
+            }
+        });
+    });
+    $(document).ready(function() {
+        // Handle scheduler form submission
+        $('#run-scheduler-btn').click(function() {
+            const iterations = parseInt($('#iterations').val());
+            const minCourseFill = parseFloat($('#minCourseFill').val());
+            const earlyStopScore = parseFloat($('#earlyStopScore').val() || 0);
+            
+            const config = {
+                iterations: iterations,
+                min_course_fill: minCourseFill,
+                early_stop_score: earlyStopScore
+            };
+            
+            // Run scheduler
+            runScheduler(config);
+        });
+        
+        // Load config from history
+        $('.load-config-btn').click(function() {
+            const iterations = $(this).data('iterations');
+            const minFill = $(this).data('min-fill');
+            const earlyStop = $(this).data('early-stop');
+            
+            $('#iterations').val(iterations);
+            $('#minCourseFill').val(minFill);
+            $('#earlyStopScore').val(earlyStop);
+            
+            // Scroll to top of the form
+            $('html, body').animate({
+                scrollTop: $("#schedulerForm").offset().top - 100
+            }, 500);
+        });
+    });
+</script>
+{% endblock %}

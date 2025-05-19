@@ -1,0 +1,495 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Students - Course Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h2 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Student Management</h2>
+                <div>
+                    <button class="btn btn-light me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="fas fa-file-import me-1"></i> Import Students
+                    </button>
+                    <button class="btn btn-danger" id="clearAllStudentsBtn">
+                        <i class="fas fa-trash me-1"></i> Clear All Students
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" id="studentSearch" class="form-control" placeholder="Search students by name, email, or grade...">
+                            <button class="btn btn-primary" type="button" id="searchBtn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-outline-primary" id="addStudentBtn" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                            <i class="fas fa-plus me-1"></i> Add New Student
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Grade</th>
+                                <th>Priority</th>
+                                <th>AM Course</th>
+                                <th>PM Course</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                <td>{{ student.email }}</td>
+                                <td>{{ student.grade }}</td>
+                                <td>{{ student.priority }}</td>
+                                <td>
+                                    {% if student.am_course %}
+                                    {{ student.am_course.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if student.pm_course %}
+                                    {{ student.pm_course.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary btn-action" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#viewStudentModal" 
+                                            data-student-id="{{ student.id }}"
+                                            data-student-name="{{ student.first_name }} {{ student.last_name }}"
+                                            data-student-email="{{ student.email }}"
+                                            data-student-grade="{{ student.grade }}"
+                                            data-student-priority="{{ student.priority }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger btn-action" 
+                                            data-confirm="Are you sure you want to delete this student?"
+                                            data-student-id="{{ student.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    No students found. Import students or create a new one.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                        <i class="fas fa-plus me-1"></i> Add New Student
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle me-2"></i>Student Information</h5>
+            <p>Students are assigned courses based on their preferences and priority:</p>
+            <ul>
+                <li><strong>Priority 1:</strong> Highest priority (Juniors)</li>
+                <li><strong>Priority 2:</strong> Medium priority (Sophomores)</li>
+                <li><strong>Priority 3:</strong> Lower priority (Freshmen)</li>
+            </ul>
+            <p>The scheduler will attempt to assign students to their preferred courses based on availability and priority.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-file-import me-2"></i>Import Students</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form class="import-form" action="{% url 'import_students' %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="studentFile" class="form-label">CSV File</label>
+                        <input type="file" class="form-control custom-file-input" id="studentFile" name="file" accept=".csv" required>
+                    </div>
+                    <div class="mb-3">
+                        <p><strong>Expected CSV Format:</strong></p>
+                        <pre class="bg-light p-3 border rounded">Email Address,Students First Name,Students Last Name,Grade in school this year,AM Course - 1st Choice. (Drop down option),AM Course - 2nd Choice. (Drop down option),AM Course - 3rd Choice. (Drop down option),AM Course - 4th Choice. (Drop down option),AM Course - 5th Choice. (Drop down option),PM Course - 1st Choice. (Drop down option),PM Course - 2nd Choice. (Drop down option),PM Course - 3rd Choice. (Drop down option),PM Course - 4th Choice. (Drop down option),PM Course - 5th Choice. (Drop down option)</pre>
+                        <p class="text-muted small">This matches the format from the original Go scheduler. Make sure course names match those in your course list.</p>
+                    </div>
+                    <div class="import-status"></div>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-info">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStudentForm" action="{% url 'api:student-list' %}" method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="firstName" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" name="last_name" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="grade" class="form-label">Grade</label>
+                            <select class="form-select" id="grade" name="grade" required>
+                                <option value="Freshman">Freshman</option>
+                                <option value="Sophomore">Sophomore</option>
+                                <option value="Junior">Junior</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                <option value="3">3 (Low - Freshman)</option>
+                                <option value="2">2 (Medium - Sophomore)</option>
+                                <option value="1">1 (High - Junior)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="addStudentStatus"></div>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-info">Save Student</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Student Modal -->
+<div class="modal fade" id="viewStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-graduate me-2"></i>Student Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Name:</dt>
+                            <dd class="col-sm-8" id="viewStudentName"></dd>
+                            
+                            <dt class="col-sm-4">Email:</dt>
+                            <dd class="col-sm-8" id="viewStudentEmail"></dd>
+                            
+                            <dt class="col-sm-4">Grade:</dt>
+                            <dd class="col-sm-8" id="viewStudentGrade"></dd>
+                            
+                            <dt class="col-sm-4">Priority:</dt>
+                            <dd class="col-sm-8" id="viewStudentPriority"></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Course Assignments</h6>
+                        <div id="studentCourses" class="mb-3">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3">Course Preferences</h6>
+                <div id="studentPreferences" class="mb-3">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Check if DataTable is already initialized to prevent the warning
+        if (!$.fn.DataTable.isDataTable('.data-table')) {
+            // Initialize DataTable with search functionality
+            window.dataTable = $('.data-table').DataTable({
+                "order": [[0, "asc"]],
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "pageLength": 25
+            });
+        } else {
+            // Get the existing DataTable instance
+            window.dataTable = $('.data-table').DataTable();
+        }
+        
+        // Setup form submissions using AJAX
+        $('#addStudentForm').submit(function(e) {
+            e.preventDefault();
+            const formData = $(this).serialize();
+            
+            $.ajax({
+                url: "{% url 'api:student-list' %}",
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    $('#addStudentStatus').html(`
+                        <div class="alert alert-success">
+                            Student created successfully!
+                        </div>
+                    `);
+                    
+                    // Reload the page after a short delay
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1500);
+                },
+                error: function(xhr) {
+                    let errorMsg = 'An error occurred while creating the student.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMsg = xhr.responseJSON.detail;
+                    }
+                    
+                    $('#addStudentStatus').html(`
+                        <div class="alert alert-danger">
+                            ${errorMsg}
+                        </div>
+                    `);
+                }
+            });
+        });
+        
+        // Load student data into view modal
+        $('#viewStudentModal').on('show.bs.modal', function(event) {
+            const button = $(event.relatedTarget);
+            const studentId = button.data('student-id');
+            const studentName = button.data('student-name');
+            const studentEmail = button.data('student-email');
+            const studentGrade = button.data('student-grade');
+            const studentPriority = button.data('student-priority');
+            
+            const modal = $(this);
+            modal.find('#viewStudentName').text(studentName);
+            modal.find('#viewStudentEmail').text(studentEmail);
+            modal.find('#viewStudentGrade').text(studentGrade);
+            modal.find('#viewStudentPriority').text(studentPriority);
+            
+            // Load student details via AJAX
+            $.ajax({
+                url: `/api/students/${studentId}/`,
+                method: 'GET',
+                success: function(student) {
+                    // Display course assignments
+                    let coursesHtml = '<ul class="list-group">';
+                    
+                    if (student.am_course) {
+                        coursesHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            Morning (AM)
+                            <span class="badge bg-primary rounded-pill">${student.am_course}</span>
+                        </li>`;
+                    } else {
+                        coursesHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            Morning (AM)
+                            <span class="badge bg-secondary rounded-pill">None</span>
+                        </li>`;
+                    }
+                    
+                    if (student.pm_course) {
+                        coursesHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            Afternoon (PM)
+                            <span class="badge bg-info rounded-pill">${student.pm_course}</span>
+                        </li>`;
+                    } else {
+                        coursesHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            Afternoon (PM)
+                            <span class="badge bg-secondary rounded-pill">None</span>
+                        </li>`;
+                    }
+                    
+                    if (student.full_day_course) {
+                        coursesHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            Full Day
+                            <span class="badge bg-warning rounded-pill">${student.full_day_course}</span>
+                        </li>`;
+                    }
+                    
+                    coursesHtml += '</ul>';
+                    $('#studentCourses').html(coursesHtml);
+                    
+                    // Display preferences
+                    let preferencesHtml = '<div class="row">';
+                    
+                    // AM Preferences
+                    preferencesHtml += '<div class="col-md-6"><h6>Morning Preferences</h6>';
+                    if (student.am_preferences && student.am_preferences.length > 0) {
+                        preferencesHtml += '<ol class="list-group list-group-numbered">';
+                        student.am_preferences.forEach(pref => {
+                            preferencesHtml += `<li class="list-group-item">${pref}</li>`;
+                        });
+                        preferencesHtml += '</ol>';
+                    } else {
+                        preferencesHtml += '<p class="text-muted">No AM preferences set</p>';
+                    }
+                    preferencesHtml += '</div>';
+                    
+                    // PM Preferences
+                    preferencesHtml += '<div class="col-md-6"><h6>Afternoon Preferences</h6>';
+                    if (student.pm_preferences && student.pm_preferences.length > 0) {
+                        preferencesHtml += '<ol class="list-group list-group-numbered">';
+                        student.pm_preferences.forEach(pref => {
+                            preferencesHtml += `<li class="list-group-item">${pref}</li>`;
+                        });
+                        preferencesHtml += '</ol>';
+                    } else {
+                        preferencesHtml += '<p class="text-muted">No PM preferences set</p>';
+                    }
+                    preferencesHtml += '</div>';
+                    
+                    preferencesHtml += '</div>';
+                    $('#studentPreferences').html(preferencesHtml);
+                },
+                error: function() {
+                    $('#studentCourses').html('<div class="alert alert-danger">Error loading student data</div>');
+                    $('#studentPreferences').html('');
+                }
+            });
+        });
+        
+        // Handle student deletion
+        $('.btn-danger[data-student-id]').click(function() {
+            if (confirm('Are you sure you want to delete this student?')) {
+                const studentId = $(this).data('student-id');
+                
+                $.ajax({
+                    url: `/api/students/${studentId}/`,
+                    method: 'DELETE',
+                    success: function() {
+                        // Reload the page
+                        window.location.reload();
+                    },
+                    error: function() {
+                        alert('An error occurred while deleting the student. Please try again.');
+                    }
+                });
+            }
+        });
+        
+        // Handle search button click
+        $('#searchBtn').click(function() {
+            const searchTerm = $('#studentSearch').val();
+            window.dataTable.search(searchTerm).draw();
+            console.log('Search performed for: ' + searchTerm);
+        });
+        
+        // Also search when Enter key is pressed in search box
+        $('#studentSearch').keypress(function(e) {
+            if (e.which === 13) { // Enter key
+                const searchTerm = $(this).val();
+                window.dataTable.search(searchTerm).draw();
+                console.log('Enter key search for: ' + searchTerm);
+                return false; // Prevent form submission
+            }
+        });
+        
+        // Handle clear all students button
+        $('#clearAllStudentsBtn').on('click', function() {
+            console.log('Clear all students button clicked');
+            if (confirm('Are you sure you want to delete ALL students? This action cannot be undone.')) {
+                console.log('Confirmation accepted, proceeding with deletion');
+                // Create loading overlay
+                var loadingOverlay = $('<div class="loading-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">' +
+                    '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>' +
+                    '<p class="text-white mt-2">Clearing all students...</p></div>');
+                
+                $('body').append(loadingOverlay);
+                
+                $.ajax({
+                    url: '/api/clear-all-students/',
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    success: function(response) {
+                        console.log('All students cleared successfully');
+                        // Reload the page
+                        window.location.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        // Remove loading overlay
+                        $('.loading-overlay').remove();
+                        
+                        console.error('Error clearing students:', xhr.responseText);
+                        // Show error message
+                        alert('Error clearing students: ' + (xhr.responseJSON ? xhr.responseJSON.error : error || 'Unknown error'));
+                    }
+                });
+            }
+        });
+        
+        // Auto-update priority when grade changes
+        $('#grade').change(function() {
+            const grade = $(this).val();
+            let priority = 3;
+            
+            if (grade === 'Junior') {
+                priority = 1;
+            } else if (grade === 'Sophomore') {
+                priority = 2;
+            }
+            
+            $('#priority').val(priority);
+        });
+    });
+</script>
+{% endblock %}

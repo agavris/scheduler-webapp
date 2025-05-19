@@ -1,0 +1,453 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Schedule Details - Course Scheduler{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'schedules' %}">Schedules</a></li>
+                <li class="breadcrumb-item active">{{ schedule.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header {% if schedule.is_best %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Schedule Summary</h4>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-6">Name:</dt>
+                    <dd class="col-sm-6">{{ schedule.name }}</dd>
+                    
+                    <dt class="col-sm-6">Score:</dt>
+                    <dd class="col-sm-6">{{ schedule.score|floatformat:2 }}</dd>
+                    
+                    <dt class="col-sm-6">Status:</dt>
+                    <dd class="col-sm-6">
+                        {% if schedule.is_best %}
+                        <span class="badge bg-success">Best Schedule</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Alternative</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-6">Created:</dt>
+                    <dd class="col-sm-6">{{ schedule.created_at|date:"M d, Y H:i" }}</dd>
+                    
+                    <dt class="col-sm-6">Student Count:</dt>
+                    <dd class="col-sm-6">{{ snapshots|length }}</dd>
+                </dl>
+            </div>
+            <div class="card-footer">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'api:schedule-export-csv' schedule.id %}" class="btn btn-success">
+                        <i class="fas fa-file-csv me-2"></i>Export to CSV
+                    </a>
+                    {% if not schedule.is_best %}
+                    <button id="markAsBestBtn" class="btn btn-primary">
+                        <i class="fas fa-star me-2"></i>Mark as Best
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Statistics</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="satisfactionChart" width="100%" height="200"></canvas>
+                
+                <hr>
+                
+                <h5 class="mt-4">Priority Distribution</h5>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Priority</th>
+                            <th>Count</th>
+                            <th>Satisfied</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="priorityStats">
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <ul class="nav nav-tabs" id="scheduleTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab" aria-controls="students" aria-selected="true">
+                    <i class="fas fa-user-graduate me-1"></i> Students
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="courses-tab" data-bs-toggle="tab" data-bs-target="#courses" type="button" role="tab" aria-controls="courses" aria-selected="false">
+                    <i class="fas fa-book me-1"></i> Courses
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="scheduleTabContent">
+            <!-- Students Tab -->
+            <div class="tab-pane fade show active p-3 border border-top-0 rounded-bottom" id="students" role="tabpanel" aria-labelledby="students-tab">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover data-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>AM Course</th>
+                                <th>PM Course</th>
+                                <th>Full Day</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for snapshot in snapshots %}
+                            <tr>
+                                <td>{{ snapshot.student.first_name }} {{ snapshot.student.last_name }}</td>
+                                <td>
+                                    {% if snapshot.am_course %}
+                                    {{ snapshot.am_course.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if snapshot.pm_course %}
+                                    {{ snapshot.pm_course.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if snapshot.full_day_course %}
+                                    {{ snapshot.full_day_course.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if snapshot.satisfaction_score == 0 %}
+                                    <span class="badge bg-success">{{ snapshot.satisfaction_score }}</span>
+                                    {% elif snapshot.satisfaction_score <= 0.5 %}
+                                    <span class="badge bg-warning">{{ snapshot.satisfaction_score }}</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">{{ snapshot.satisfaction_score }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No student data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Courses Tab -->
+            <div class="tab-pane fade p-3 border border-top-0 rounded-bottom" id="courses" role="tabpanel" aria-labelledby="courses-tab">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="courseFilter" class="form-label">Filter Courses:</label>
+                            <select id="courseFilter" class="form-select">
+                                <option value="all">All Time Slots</option>
+                                <option value="AM">Morning (AM)</option>
+                                <option value="PM">Afternoon (PM)</option>
+                                <option value="FullDay">Full Day</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="coursesContainer">
+                    <div class="d-flex justify-content-center my-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Load course data
+        function loadCourseData() {
+            const filter = $('#courseFilter').val();
+            
+            $.ajax({
+                url: '/api/sections/',
+                method: 'GET',
+                success: function(sections) {
+                    if (filter !== 'all') {
+                        sections = sections.filter(section => section.time_slot === filter);
+                    }
+                    
+                    // Sort sections by fill rate (descending)
+                    sections.sort((a, b) => {
+                        const fillA = a.enrolled_students_count / a.max_students;
+                        const fillB = b.enrolled_students_count / b.max_students;
+                        return fillB - fillA;
+                    });
+                    
+                    let html = '';
+                    for (const section of sections) {
+                        const fillRate = (section.enrolled_students_count / section.max_students) * 100;
+                        const fillColor = fillRate >= 90 ? 'success' : 
+                                         fillRate >= 70 ? 'info' :
+                                         fillRate >= 50 ? 'warning' : 'danger';
+                        
+                        html += `
+                            <div class="card mb-3">
+                                <div class="card-header d-flex justify-content-between">
+                                    <h5 class="mb-0">${section.course_name}</h5>
+                                    <span class="badge bg-${section.time_slot === 'AM' ? 'primary' : section.time_slot === 'PM' ? 'info' : 'warning'}">
+                                        ${section.time_slot === 'AM' ? 'Morning' : section.time_slot === 'PM' ? 'Afternoon' : 'Full Day'}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-3">
+                                            <strong>${section.enrolled_students_count} / ${section.max_students} students</strong>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="progress">
+                                                <div class="progress-bar bg-${fillColor}" role="progressbar" 
+                                                    style="width: ${fillRate}%" 
+                                                    aria-valuenow="${fillRate}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                    ${fillRate.toFixed(0)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Student</th>
+                                                    <th>Grade</th>
+                                                    <th>Priority</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                        `;
+                        
+                        if (section.students && section.students.length > 0) {
+                            for (const student of section.students) {
+                                html += `
+                                    <tr>
+                                        <td>${student.first_name} ${student.last_name}</td>
+                                        <td>${student.grade}</td>
+                                        <td>${student.priority}</td>
+                                    </tr>
+                                `;
+                            }
+                        } else {
+                            html += `
+                                <tr>
+                                    <td colspan="3" class="text-center">No students enrolled</td>
+                                </tr>
+                            `;
+                        }
+                        
+                        html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (html === '') {
+                        html = '<div class="alert alert-info">No courses found for the selected filter.</div>';
+                    }
+                    
+                    $('#coursesContainer').html(html);
+                },
+                error: function() {
+                    $('#coursesContainer').html('<div class="alert alert-danger">Error loading course data</div>');
+                }
+            });
+        }
+        
+        // Initialize course data
+        loadCourseData();
+        
+        // Handle course filter change
+        $('#courseFilter').change(function() {
+            loadCourseData();
+        });
+        
+        // Load satisfaction chart
+        function loadSatisfactionChart() {
+            // Use satisfaction scores prepared by the view
+            const perfectCount = parseInt("{{ perfect_count }}", 10) || 0;
+            const partialCount = parseInt("{{ partial_count }}", 10) || 0;
+            const unsatisfiedCount = parseInt("{{ unsatisfied_count }}", 10) || 0;
+            const ctx = document.getElementById('satisfactionChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Perfect', 'Partial', 'Unsatisfied'],
+                    datasets: [{
+                        data: [perfectCount, partialCount, unsatisfiedCount],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(220, 53, 69, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize satisfaction chart
+        loadSatisfactionChart();
+        
+        // Helper function to determine progress bar color based on percentage
+        function getColorForPercentage(percentage) {
+            if (percentage >= 90) return '#28a745'; // success (green)
+            if (percentage >= 70) return '#17a2b8'; // info (blue)
+            if (percentage >= 50) return '#ffc107'; // warning (yellow)
+            return '#dc3545'; // danger (red)
+        }
+        
+        // Calculate and show priority statistics
+        function loadPriorityStats() {
+            $.ajax({
+                url: '/api/students/with_preferences/',
+                method: 'GET',
+                success: function(students) {
+                    // Initialize counters
+                    const stats = {
+                        1: { count: 0, satisfied: 0 },
+                        2: { count: 0, satisfied: 0 },
+                        3: { count: 0, satisfied: 0 }
+                    };
+                    
+                    // Count students by priority
+                    for (const student of students) {
+                        const priority = student.priority || 3;
+                        stats[priority].count++;
+                        
+                        // Check if satisfied (score is 0)
+                        if ((student.am_course && student.am_preferences.includes(student.am_course)) &&
+                            (student.pm_course && student.pm_preferences.includes(student.pm_course))) {
+                            stats[priority].satisfied++;
+                        }
+                    }
+                    
+                    // Generate HTML
+                    let html = '';
+                    for (let i = 1; i <= 3; i++) {
+                        const percentage = stats[i].count > 0 ? 
+                            Math.round((stats[i].satisfied / stats[i].count) * 100) : 0;
+                        
+                        html += `
+                            <tr>
+                                <td>${i} (${i === 1 ? 'High' : i === 2 ? 'Medium' : 'Low'})</td>
+                                <td>${stats[i].count}</td>
+                                <td>${stats[i].satisfied}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" 
+                                            style="width: ${percentage}%; background-color: ${getColorForPercentage(percentage)};" 
+                                            role="progressbar" 
+                                            aria-valuenow="${percentage}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100">
+                                            ${percentage}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    
+                    $('#priorityStats').html(html);
+                },
+                error: function() {
+                    $('#priorityStats').html('<tr><td colspan="4" class="text-danger">Error loading statistics</td></tr>');
+                }
+            });
+        }
+        
+        // Initialize priority stats
+        loadPriorityStats();
+        
+        // Handle "Mark as Best" button
+        $('#markAsBestBtn').click(function() {
+            const scheduleId = "{{ schedule.id }}";
+            
+            $.ajax({
+                url: `/api/schedules/${scheduleId}/`,
+                method: 'PATCH',
+                data: JSON.stringify({ is_best: true }),
+                contentType: 'application/json',
+                success: function() {
+                    window.location.reload();
+                },
+                error: function() {
+                    alert('Error marking schedule as best. Please try again.');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+# Core dependencies
+Django>=5.0.0
+djangorestframework>=3.16.0
+django-ninja>=1.0.0
+
+# Data processing and scheduling
+pandas>=2.0.0
+numpy>=1.20.0
+ortools>=9.6.2534
+
+# Database support
+psycopg2-binary>=2.9.9  # PostgreSQL adapter
+dj-database-url>=2.1.0  # For database URLs in production
+
+# Caching and performance
+redis>=5.0.1
+django-redis>=5.4.0
+
+# Security
+django-environ>=0.11.2  # Environment variables management
+whitenoise>=6.6.0  # Static files serving
+gunicorn>=21.2.0  # WSGI HTTP Server
+django-cors-headers>=4.3.1  # CORS support
+django-csp>=3.8  # Content Security Policy
+django-storages>=1.14.2  # For cloud storage (AWS, Google Cloud, etc.)
+argon2-cffi>=23.1.0  # More secure password hashing
+pyOpenSSL>=24.0.0  # SSL/TLS support
+requests>=2.31.0  # HTTP library with security features
+django-ratelimit>=4.1.0  # Rate limiting protection against brute force
+django-axes>=6.1.1  # Login attempt security
+
+# API Documentation
+drf-yasg>=1.21.7  # Swagger/OpenAPI documentation
+
+# Monitoring and logging
+sentry-sdk>=1.39.1  # Error tracking
+django-prometheus>=0.2.1  # Metrics for Prometheus
+
+# Task queue and async processing
+celery>=5.3.6  # For async tasks
+django-celery-results>=2.5.1  # Store Celery results in Django ORM
+flower>=2.0.1  # Celery monitoring
+
+# Testing
+pytest>=8.0.0
+pytest-django>=4.7.0
+coverage>=7.4.0
+
+# Date and time handling
+python-dateutil>=2.8.2
+pytz>=2024.1
+tzdata>=2024.1
+
+# Utilities
+six>=1.16.0

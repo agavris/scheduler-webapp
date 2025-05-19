@@ -1,0 +1,277 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}User Preferences - Course Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h2 class="mb-0"><i class="fas fa-sliders-h me-2"></i>User Preferences</h2>
+            </div>
+            <div class="card-body">
+                <form id="preferencesForm" method="post">
+                    {% csrf_token %}
+                    
+                    <h4 class="mt-3 mb-3">Application Theme</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" id="themeDefault" value="default" {% if preferences.theme == 'default' or not preferences.theme %}checked{% endif %}>
+                                <label class="form-check-label" for="themeDefault">
+                                    <div class="theme-preview default-theme">Default</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" id="themeDark" value="dark" {% if preferences.theme == 'dark' %}checked{% endif %}>
+                                <label class="form-check-label" for="themeDark">
+                                    <div class="theme-preview dark-theme">Dark</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" id="themeColorful" value="colorful" {% if preferences.theme == 'colorful' %}checked{% endif %}>
+                                <label class="form-check-label" for="themeColorful">
+                                    <div class="theme-preview colorful-theme">Colorful</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="mt-4 mb-3">Dashboard Configuration</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Dashboard Widgets</label>
+                            <div class="list-group" id="widgetSortable">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-grip-vertical me-2"></i>
+                                        <span>Student Summary</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="widgets" value="student_summary" {% if 'student_summary' in preferences.widgets %}checked{% endif %}>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-grip-vertical me-2"></i>
+                                        <span>Course Fill Status</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="widgets" value="course_fill" {% if 'course_fill' in preferences.widgets %}checked{% endif %}>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-grip-vertical me-2"></i>
+                                        <span>Satisfaction Charts</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="widgets" value="satisfaction_charts" {% if 'satisfaction_charts' in preferences.widgets %}checked{% endif %}>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-grip-vertical me-2"></i>
+                                        <span>Recent Schedules</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="widgets" value="recent_schedules" {% if 'recent_schedules' in preferences.widgets %}checked{% endif %}>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">Drag to reorder widgets. Toggle switches to show/hide.</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Default Views</label>
+                            <div class="mb-3">
+                                <label for="defaultScheduleView" class="form-label">Default Schedule View</label>
+                                <select class="form-select" id="defaultScheduleView" name="default_schedule_view">
+                                    <option value="list" {% if preferences.default_schedule_view == 'list' %}selected{% endif %}>List View</option>
+                                    <option value="grid" {% if preferences.default_schedule_view == 'grid' %}selected{% endif %}>Grid View</option>
+                                    <option value="calendar" {% if preferences.default_schedule_view == 'calendar' %}selected{% endif %}>Calendar View</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="scheduleEntriesPerPage" class="form-label">Items Per Page</label>
+                                <select class="form-select" id="scheduleEntriesPerPage" name="entries_per_page">
+                                    <option value="10" {% if preferences.entries_per_page == '10' %}selected{% endif %}>10 entries</option>
+                                    <option value="25" {% if preferences.entries_per_page == '25' %}selected{% endif %}>25 entries</option>
+                                    <option value="50" {% if preferences.entries_per_page == '50' %}selected{% endif %}>50 entries</option>
+                                    <option value="100" {% if preferences.entries_per_page == '100' %}selected{% endif %}>100 entries</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="mt-4 mb-3">Scheduler Defaults</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label for="defaultIterations" class="form-label">Default Iterations</label>
+                            <input type="number" class="form-control" id="defaultIterations" name="default_iterations" 
+                                   min="100" max="100000" value="{{ preferences.default_iterations|default:1000 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="defaultMinCourseFill" class="form-label">Default Min Course Fill</label>
+                            <input type="number" class="form-control" id="defaultMinCourseFill" name="default_min_course_fill" 
+                                   min="0" max="1" step="0.05" value="{{ preferences.default_min_course_fill|default:0.75 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="defaultPriorityWeight" class="form-label">Default Priority Weight</label>
+                            <select class="form-select" id="defaultPriorityWeight" name="default_priority_weight">
+                                <option value="standard" {% if preferences.default_priority_weight == 'standard' %}selected{% endif %}>Standard</option>
+                                <option value="strong" {% if preferences.default_priority_weight == 'strong' %}selected{% endif %}>Strong</option>
+                                <option value="balanced" {% if preferences.default_priority_weight == 'balanced' %}selected{% endif %}>Balanced</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h4 class="mt-4 mb-3">Notification Settings</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyOnScheduleComplete" name="notifications" value="schedule_complete" {% if 'schedule_complete' in preferences.notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="notifyOnScheduleComplete">
+                                    Notify when scheduler finishes
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyOnDataChange" name="notifications" value="data_change" {% if 'data_change' in preferences.notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="notifyOnDataChange">
+                                    Notify on data changes (students/courses)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifyOnSystemEvents" name="notifications" value="system_events" {% if 'system_events' in preferences.notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="notifyOnSystemEvents">
+                                    Notify on system events
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="notificationDuration" class="form-label">Notification Duration (seconds)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="notificationDuration" name="notification_duration" value="{{ preferences.notification_duration|default:5 }}">
+                                <div class="d-flex justify-content-between">
+                                    <span>1s</span>
+                                    <span id="notificationDurationValue">{{ preferences.notification_duration|default:5 }}s</span>
+                                    <span>10s</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="reset" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-undo me-1"></i> Reset
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Save Preferences
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .theme-preview {
+        width: 100px;
+        height: 60px;
+        border-radius: 5px;
+        margin-top: 5px;
+        padding: 10px;
+        text-align: center;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+    
+    .default-theme {
+        background: #f8f9fa;
+        color: #212529;
+        border: 1px solid #dee2e6;
+    }
+    
+    .dark-theme {
+        background: #343a40;
+        color: #f8f9fa;
+        border: 1px solid #495057;
+    }
+    
+    .colorful-theme {
+        background: linear-gradient(135deg, #13547a 0%, #80d0c7 100%);
+        color: white;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize sortable for widgets
+        var widgetSortable = new Sortable(document.getElementById('widgetSortable'), {
+            animation: 150,
+            handle: '.fas.fa-grip-vertical',
+            ghostClass: 'bg-light'
+        });
+        
+        // Update notification duration value display
+        $('#notificationDuration').on('input', function() {
+            $('#notificationDurationValue').text($(this).val() + 's');
+        });
+        
+        // Form submission with AJAX
+        $('#preferencesForm').submit(function(e) {
+            e.preventDefault();
+            
+            // Get widget order
+            var widgetOrder = [];
+            $('#widgetSortable .form-check-input:checked').each(function() {
+                widgetOrder.push($(this).val());
+            });
+            
+            // Add hidden field for widget order
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'widget_order',
+                value: widgetOrder.join(',')
+            }).appendTo('#preferencesForm');
+            
+            $.ajax({
+                url: '{% url "save_preferences" %}',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    // Show success message
+                    const toast = $('<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5000">' +
+                        '<div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">' +
+                        '<div class="toast-header bg-success text-white">' +
+                        '<i class="fas fa-check-circle me-2"></i>' +
+                        '<strong class="me-auto">Success</strong>' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                        '</div>' +
+                        '<div class="toast-body">' +
+                        'Your preferences have been saved successfully.' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>');
+                    
+                    $('body').append(toast);
+                    setTimeout(function() {
+                        toast.remove();
+                    }, 3000);
+                },
+                error: function() {
+                    alert('Error saving preferences. Please try again.');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
