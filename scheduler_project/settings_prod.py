@@ -7,7 +7,12 @@ import os
 from datetime import timedelta
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-t-$8%17n6n*-#=$m*tbaf2=@u5m-6prv1%0y_o&9(+&h#k_q(j')
+# No fallback in production - this must be set in environment variables
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+
+# Ensure the secret key is set
+if not SECRET_KEY:
+    raise Exception('DJANGO_SECRET_KEY environment variable is not set. This is required for production.')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False

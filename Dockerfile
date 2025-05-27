@@ -3,7 +3,7 @@ FROM python:3.10-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=scheduler_project.settings_heroku
+ENV DJANGO_SETTINGS_MODULE=scheduler_project.settings_prod
 
 # Create and set working directory
 WORKDIR /app
