@@ -1,0 +1,76 @@
+name: scheduler-webapp
+region: nyc
+
+services:
+  - name: web
+    github:
+      repo: agavris/scheduler-webapp
+      branch: main
+    dockerfile_path: Dockerfile  # Use Docker directly instead of buildpacks
+    http_port: 8000
+    instance_size_slug: basic-s
+    instance_count: 1
+    routes:
+      - path: /
+    envs:
+      - key: DJANGO_SECRET_KEY
+        value: ${DJANGO_SECRET_KEY}
+        type: SECRET
+      - key: DJANGO_SETTINGS_MODULE
+        value: scheduler_project.settings_prod
+        type: GENERAL
+      - key: ALLOWED_HOSTS
+        value: ${APP_DOMAIN},*.ondigitalocean.app
+        type: GENERAL
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://${APP_DOMAIN},https://*.ondigitalocean.app
+        type: GENERAL
+      - key: ENABLE_SSL
+        value: "True"
+        type: GENERAL
+      - key: DEBUG
+        value: "False"
+        type: GENERAL
+      # Database connection settings
+      - key: DB_NAME
+        value: ${db.DATABASE}
+        type: GENERAL
+      - key: DB_USER
+        value: ${db.USERNAME}
+        type: GENERAL
+      - key: DB_PASSWORD
+        value: ${db.PASSWORD}
+        type: SECRET
+      - key: DB_HOST
+        value: ${db.HOSTNAME}
+        type: GENERAL
+      - key: DB_PORT
+        value: ${db.PORT}
+        type: GENERAL
+      - key: DB_USE_SSL
+        value: "True"
+        type: GENERAL
+    health_check:
+      http_path: /login/
+      initial_delay_seconds: 30
+      period_seconds: 60
+
+# Define a Postgres database
+databases:
+  - engine: PG
+    name: db
+    num_nodes: 1
+    size: basic-s
+    version: "14"
+    db_name: scheduler
+
+# Environment variables accessible to all components
+envs:
+  - key: DJANGO_SECRET_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: ${DJANGO_SECRET_KEY}
+    type: SECRET
+  - key: APP_DOMAIN
+    scope: RUN_AND_BUILD_TIME
+    value: ${APP_DOMAIN}
+    type: GENERAL
