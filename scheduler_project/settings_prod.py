@@ -235,14 +235,15 @@ SECURITY_HEADERS = {
 }
 
 # Content Security Policy settings
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'code.jquery.com')
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'fonts.googleapis.com')
-CSP_FONT_SRC = ("'self'", 'fonts.gstatic.com', 'cdn.jsdelivr.net')
-CSP_IMG_SRC = ("'self'", 'data:')
-CSP_CONNECT_SRC = ("'self'",)
-CSP_INCLUDE_NONCE_IN = ('script-src',)
-CSP_EXCLUDE_URL_PREFIXES = ('/admin/',)
+# Using lists instead of tuples to allow the middleware to modify them
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_SCRIPT_SRC = ["'self'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'code.jquery.com']
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'fonts.googleapis.com']
+CSP_FONT_SRC = ["'self'", 'fonts.gstatic.com', 'cdn.jsdelivr.net']
+CSP_IMG_SRC = ["'self'", 'data:']
+CSP_CONNECT_SRC = ["'self'"]
+CSP_INCLUDE_NONCE_IN = ['script-src']
+CSP_EXCLUDE_URL_PREFIXES = ['/admin/']
 
 # CORS Configuration - restrict to specific domains in production
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080').split(',')
