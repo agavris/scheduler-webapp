@@ -14,6 +14,10 @@ fi
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
+# Obfuscate JavaScript files for enhanced security
+echo "Applying JavaScript security measures..."
+python manage.py obfuscate_js
+
 # Apply migrations
 echo "Applying database migrations..."
 python manage.py migrate

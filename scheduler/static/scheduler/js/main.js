@@ -145,14 +145,32 @@ function setupConfirmationModals() {
 function initializeDataTables() {
     // Check if DataTable function exists
     if (typeof $.fn.DataTable !== 'undefined') {
-        $('.data-table').DataTable({
-            "responsive": true,
-            "order": [[0, 'asc']],
-            "pageLength": 25,
-            "language": {
-                "search": "Filter:",
-                "lengthMenu": "Show _MENU_ entries",
-                "info": "Showing _START_ to _END_ of _TOTAL_ entries"
+        // Destroy any existing DataTables to prevent errors
+        $('.data-table').each(function() {
+            if ($.fn.DataTable.isDataTable(this)) {
+                $(this).DataTable().destroy();
+            }
+        });
+        
+        // Re-initialize each table with proper column detection
+        $('.data-table').each(function() {
+            // Count columns in header
+            var headerColCount = $(this).find('thead th').length;
+            // Only initialize if we have a header
+            if (headerColCount > 0) {
+                $(this).DataTable({
+                    "responsive": true,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    "pageLength": 25,
+                    "autoWidth": false,
+                    // This ensures the column count matches the table
+                    "columns": Array(headerColCount).fill(null).map(() => ({ "defaultContent": "" })),
+                    "language": {
+                        "search": "Filter:",
+                        "lengthMenu": "Show _MENU_ entries",
+                        "info": "Showing _START_ to _END_ of _TOTAL_ entries"
+                    }
+                });
             }
         });
     }

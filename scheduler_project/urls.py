@@ -28,7 +28,7 @@ urlpatterns = [
     
     # Authentication URLs - registration restricted to admin only
     path('login/', auth_views.LoginView.as_view(template_name='scheduler/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='/', template_name='scheduler/login.html', extra_context={'logout_message': 'You have been successfully logged out.'}), name='logout'),
 ]
 
 # Serve static and media files in development

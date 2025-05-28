@@ -87,9 +87,12 @@
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item" href="{% url 'logout' %}">
-                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                </a>
+                                <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item" style="background: none; border: none; width: 100%; text-align: left;">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    </button>
+                                </form>
                             </li>
                         </ul>
                     </li>
@@ -145,35 +148,8 @@
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
     
-    <!-- Global DataTables initialization -->
-    <script>
-        $(document).ready(function() {
-            // Global function to properly initialize DataTables
-            window.initializeDataTables = function() {
-                // Only initialize tables that aren't already initialized
-                $('table.data-table').each(function() {
-                    if (!$.fn.DataTable.isDataTable(this)) {
-                        // Count columns in header
-                        var headerCols = $(this).find('thead th').length;
-                        // Adjust column defs to match header count
-                        $(this).DataTable({
-                            "responsive": true,
-                            "columns": Array(headerCols).fill(null).map(function() {
-                                return { "defaultContent": "" };
-                            }),
-                            "columnDefs": [{
-                                "defaultContent": "",
-                                "targets": "_all"
-                            }]
-                        });
-                    }
-                });
-            };
-            
-            // Run initialization
-            initializeDataTables();
-        });
-    </script>
+    <!-- DataTables Fix Script -->  
+    <script src="{% static 'scheduler/js/datatables-fix.js' %}"></script>
     
     <!-- Custom JS -->
     <script src="{% static 'scheduler/js/main.js' %}"></script>

@@ -71,8 +71,8 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '5432'),
         'CONN_MAX_AGE': 600,  # Keep connections alive for 10 minutes
         'OPTIONS': {
-            # Use SSL in production but allow disabling for development
-            'sslmode': 'require' if os.environ.get('DB_USE_SSL', 'True').lower() != 'false' else 'disable',
+            # Use SSL in production but disable for development
+            'sslmode': 'require' if os.environ.get('DB_USE_SSL', 'False').lower() == 'true' else 'disable',
             'connect_timeout': 5,
         },
         'ATOMIC_REQUESTS': True,  # Wrap each HTTP request in a transaction
@@ -162,6 +162,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'csp.middleware.CSPMiddleware',  # Content Security Policy
+    'scheduler.middleware.csp_nonce.CSPNonceMiddleware',  # Add nonces to script tags
     'corsheaders.middleware.CorsMiddleware',  # CORS protection
     'axes.middleware.AxesMiddleware',  # Login attempt security
     'scheduler.middleware.LoginRequiredMiddleware',  # Our custom login protection
@@ -188,8 +189,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 50
 }
 
-# Add WhiteNoise configuration for static files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Add WhiteNoise configuration for static files with enhanced security for JavaScript
+STATICFILES_STORAGE = 'scheduler_project.asset_security.SecureJavaScriptStorage'
 
 # Setup session expiry 
 SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
@@ -234,16 +235,35 @@ SECURITY_HEADERS = {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
 }
 
-# Content Security Policy settings
-# Using lists instead of tuples to allow the middleware to modify them
-CSP_DEFAULT_SRC = ["'self'"]
-CSP_SCRIPT_SRC = ["'self'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'code.jquery.com']
-CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'fonts.googleapis.com']
-CSP_FONT_SRC = ["'self'", 'fonts.gstatic.com', 'cdn.jsdelivr.net']
-CSP_IMG_SRC = ["'self'", 'data:']
-CSP_CONNECT_SRC = ["'self'"]
-CSP_INCLUDE_NONCE_IN = ['script-src']
-CSP_EXCLUDE_URL_PREFIXES = ['/admin/']
+# Content Security Policy settings - New format (django-csp >= 4.0)
+CONTENT_SECURITY_POLICY = {
+    'DIRECTIVES': {
+        'default-src': ["'self'"],
+        'script-src': [
+            "'self'", 
+            'cdn.jsdelivr.net', 
+            'cdn.datatables.net', 
+            'code.jquery.com',
+            # Add nonce and hash options for inline scripts
+            "'nonce-{nonce}'",  # Will be replaced with actual nonce in the middleware
+        ],
+        'style-src': ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.datatables.net', 'fonts.googleapis.com'],
+        'font-src': ["'self'", 'fonts.gstatic.com', 'cdn.jsdelivr.net'],
+        'img-src': ["'self'", 'data:'],
+        'connect-src': ["'self'"],
+        # Prevent external scripts from accessing your JavaScript objects
+        'object-src': ["'none'"],
+        # Additional security headers
+        'frame-ancestors': ["'none'"],  # Prevents your site from being framed
+        'base-uri': ["'self'"],         # Restricts use of <base>
+        'form-action': ["'self'"],      # Restricts where forms can be submitted
+        # Cache control for JS files to prevent older versions from running
+        'require-sri-for': ["'script'"],  # Require Subresource Integrity
+    },
+    'EXCLUDE_URL_PREFIXES': ['/admin/'],
+    'REPORT_ONLY': False,  # Enforce the policy
+    'REPORT_URI': None,    # Could set up reporting endpoint in the future
+}
 
 # CORS Configuration - restrict to specific domains in production
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080').split(',')
@@ -272,7 +292,15 @@ CORS_ALLOW_HEADERS = [
 AXES_FAILURE_LIMIT = 5  # Number of login attempts before lockout
 AXES_LOCKOUT_TIMEOUT = 30  # Lock out time in minutes
 AXES_COOLOFF_TIME = timedelta(minutes=30)  # Time before resetting failure count
-AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Lock by both user and IP
+
+# Updated Axes settings (old setting was deprecated)
+AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']  # Lock by both user and IP
+
+# Django Axes requires this authentication backend
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Django-ratelimit configuration
 RATELIMIT_VIEW = 'scheduler.views.rate_limited_error'  # View to use when rate limit is exceeded
@@ -281,13 +309,22 @@ RATELIMIT_USE_CACHE = 'default'
 RATELIMIT_FAIL_OPEN = False  # Don't allow requests when the cache is down
 
 # Production Cache Configuration
+# Build Redis URL with password if it exists
+redis_password = os.environ.get('REDIS_PASSWORD', 'redispassword')
+redis_host = os.environ.get('REDIS_HOST', 'redis')
+redis_port = os.environ.get('REDIS_PORT', '6379')
+redis_db = os.environ.get('REDIS_DB', '1')
+
+# Format: redis://:password@host:port/db
+REDIS_URL = f'redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}'
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/1'),
+        'LOCATION': REDIS_URL,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            # No need for PASSWORD here as it's in the URL
             'SOCKET_CONNECT_TIMEOUT': 5,
             'SOCKET_TIMEOUT': 5,
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
@@ -298,6 +335,12 @@ CACHES = {
     }
 }
 
-# Use Redis for session cache as well
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+# Use cache backed by database for more reliable sessions
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_CACHE_ALIAS = 'default'
+
+# Cookie settings for better security and reliability
+SESSION_COOKIE_SECURE = False  # Set to True in actual production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True
