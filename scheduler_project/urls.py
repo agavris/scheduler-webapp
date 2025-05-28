@@ -19,8 +19,8 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
-from scheduler.views import register
 from scheduler.views.health import health_check
+# Import other views if needed
 
 # Simple URL patterns for development
 urlpatterns = [
