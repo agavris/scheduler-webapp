@@ -1,0 +1,35 @@
+# Digital Ocean App Platform Configuration
+name: scheduler-webapp
+services:
+- name: web
+  dockerfile_path: Dockerfile
+  source_dir: .
+  github:
+    branch: production
+    deploy_on_push: true
+  health_check:
+    http_path: /health/
+  routes:
+  - path: /
+  env:
+    - key: DJANGO_SETTINGS_MODULE
+      value: scheduler_project.settings_prod
+    - key: ALLOWED_HOSTS
+      value: ${APP_DOMAIN},${_self.PUBLIC_URL}
+    - key: CSRF_TRUSTED_ORIGINS
+      value: https://${APP_DOMAIN},${_self.PUBLIC_URL}
+    # Let Digital Ocean provide DATABASE_URL instead of DB_HOST, etc.
+    - key: DB_USE_SSL
+      value: true
+    # Make sure collectstatic runs properly
+    - key: DISABLE_COLLECTSTATIC
+      value: 0
+  instance_count: 1
+  instance_size_slug: basic-xxs
+databases:
+- name: scheduler-db
+  engine: PG
+  production: true
+  version: "14"
+  db_name: scheduler
+  db_user: scheduler_user

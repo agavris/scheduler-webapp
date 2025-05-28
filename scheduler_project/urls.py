@@ -20,6 +20,7 @@ from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from scheduler.views import register
+from scheduler.views.health import health_check
 
 # Simple URL patterns for development
 urlpatterns = [
@@ -29,6 +30,9 @@ urlpatterns = [
     # Authentication URLs - registration restricted to admin only
     path('login/', auth_views.LoginView.as_view(template_name='scheduler/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/', template_name='scheduler/login.html', extra_context={'logout_message': 'You have been successfully logged out.'}), name='logout'),
+    
+    # Health check for Digital Ocean and other deployment platforms
+    path('health/', health_check, name='health_check'),
 ]
 
 # Serve static and media files in development

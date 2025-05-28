@@ -61,23 +61,37 @@ SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 
 # Database - use PostgreSQL in production
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'scheduler'),
-        'USER': os.environ.get('DB_USER', 'scheduler_user'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-        'CONN_MAX_AGE': 600,  # Keep connections alive for 10 minutes
-        'OPTIONS': {
-            # Use SSL in production but disable for development
-            'sslmode': 'require' if os.environ.get('DB_USE_SSL', 'False').lower() == 'true' else 'disable',
-            'connect_timeout': 5,
-        },
-        'ATOMIC_REQUESTS': True,  # Wrap each HTTP request in a transaction
+# Check for DATABASE_URL first (Digital Ocean and other PaaS platforms provide this)
+if os.environ.get('DATABASE_URL'):
+    # Use dj-database-url to parse the DATABASE_URL
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=os.environ.get('DB_USE_SSL', 'False').lower() == 'true',
+        )
     }
-}
+    # Add atomic requests
+    DATABASES['default']['ATOMIC_REQUESTS'] = True
+else:
+    # Fall back to explicit configuration (local Docker environment)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'scheduler'),
+            'USER': os.environ.get('DB_USER', 'scheduler_user'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,  # Keep connections alive for 10 minutes
+            'OPTIONS': {
+                # Disable SSL by default - only enable explicitly when needed
+                'sslmode': 'disable',  # Always disable SSL for local development
+                'connect_timeout': 5,
+            },
+            'ATOMIC_REQUESTS': True,  # Wrap each HTTP request in a transaction
+        }
+    }
 
 # Cache settings
 CACHES = {
@@ -85,6 +99,10 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
         'TIMEOUT': 300,  # 5 minutes
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,  # Don't crash if Redis is unavailable
+        }
     }
 }
 
