@@ -165,7 +165,7 @@ MIDDLEWARE = [
     'scheduler.middleware.csp_nonce.CSPNonceMiddleware',  # Add nonces to script tags
     'corsheaders.middleware.CorsMiddleware',  # CORS protection
     'axes.middleware.AxesMiddleware',  # Login attempt security
-    'scheduler.middleware.LoginRequiredMiddleware',  # Our custom login protection
+    'scheduler.middleware.login_required.LoginRequiredMiddleware',  # Our custom login protection
 ]
 
 # REST Framework settings with rate limiting and token authentication
