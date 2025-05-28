@@ -6,6 +6,14 @@ from .settings import *
 import os
 from datetime import timedelta
 
+# Extend installed apps for production
+INSTALLED_APPS += [
+    'axes',  # Django Axes for login security
+    'corsheaders',  # CORS headers
+    'csp',  # Content Security Policy
+    'whitenoise.runserver_nostatic',  # WhiteNoise for static files
+]
+
 # SECURITY WARNING: keep the secret key used in production secret!
 # No fallback in production - this must be set in environment variables
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
